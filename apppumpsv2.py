@@ -143,27 +143,26 @@ def criar_relatorio_pdf(inputs, resultados, sugestoes):
         
     return bytes(pdf.output())
 
-def gerar_grafico_diametro_custo(diametro_base_mm, h_geometrica, **kwargs):
-    """Gera os dados para o gráfico de Custo Anual vs. Diâmetro da Tubulação."""
-    # Criar uma faixa de diâmetros para analisar, em mm
-    diametros_mm = np.linspace(max(25, diametro_base_mm * 0.5), diametro_base_mm * 2, num=20)
+def gerar_grafico_diametro_custo(vazao, h_geometrica, comp_tub, rug_tub, k_total_acessorios, rend_bomba, rend_motor, horas_por_dia, tarifa_energia, fluido_selecionado):
+    """Gera dados para o gráfico de Custo Anual vs. Diâmetro."""
+    diametros_comerciais = [25, 32, 40, 50, 65, 80, 100, 125, 150, 200, 250, 300]
     custos_anuais = []
 
-    for d_mm in diametros_mm:
-        # Calcular perda de carga para o novo diâmetro
-        perdas = calcular_perda_carga(diametro_mm=d_mm, **kwargs)
-        h_man_calculado = h_geometrica + perdas["principal"] + perdas["localizada"]
-
-        # Calcular custo energético para essa perda de carga
-        resultado_energia = calcular_analise_energetica(h_man=h_man_calculado, **kwargs)
-        custos_anuais.append(resultado_energia['custo_anual'])
+    for diam in diametros_comerciais:
+        # --- LINHA CORRIGIDA ---
+        # Passando apenas os argumentos necessários de forma explícita.
+        perdas = calcular_perda_carga(vazao, diam, comp_tub, rug_tub, k_total_acessorios, fluido_selecionado)
+        
+        h_man_total_calc = h_geometrica + perdas["principal"] + perdas["localizada"]
+        
+        resultados_calc = calcular_analise_energetica(vazao, h_man_total_calc, rend_bomba, rend_motor, horas_por_dia, tarifa_energia, fluido_selecionado)
+        custos_anuais.append(resultados_calc['custo_anual'])
 
     chart_data = pd.DataFrame({
-        'Diâmetro da Tubulação (mm)': diametros_mm,
+        'Diâmetro da Tubulação (mm)': diametros_comerciais,
         'Custo Anual de Energia (R$)': custos_anuais
     })
     return chart_data
-
 
 # --- Interface do Aplicativo Streamlit ---
 
